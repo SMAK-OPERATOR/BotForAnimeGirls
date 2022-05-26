@@ -1,224 +1,110 @@
-import telebot  # pyTelegramBotAPI	4.3.1
-import math
+# Телеграм-бот v.004
+
+import telebot  # pyTelegramBotAPI 4.3.1
 from telebot import types
+import botGames  # бот-игры, файл botGames.py
+import menuBot
+from menuBot import Menu  # в этом модуле есть код, создающий экземпляры классов описывающих моё меню
+import DZ  # домашнее задание от первого урока
+import fun  # развлечения
+import db
 
-# три глобальные переменные
-response_to_input = ""  # для формирования проверки введенного имени/возраста/ответа на задачу
-userName = ""  # для запоминания имени пользователя
-userAge = -1  # для запоминания возраста
-
-bot = telebot.TeleBot('')
+bot = telebot.TeleBot('5133509301:AAE_Ylud9e71UevXlb7xu3B6FJKJ6qC7Oas')  # Создаем экземпляр бота
 
 
-# Функция, обрабатывающая команду /start
-@bot.message_handler(commands=["start"])
-def start(message, res=False):
+# -----------------------------------------------------------------------
+# Функция, обрабатывающая команды
+@bot.message_handler(commands="start")
+def command(message):
     chat_id = message.chat.id
-
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    button1 = types.KeyboardButton("Главное меню")
-    button2 = types.KeyboardButton("Помощь")
-    markup.add(button1, button2)
-    bot.send_message(chat_id,
-                     text="Привет, {0.first_name}! Я тестовый бот для курса программирования на языке ПаЙтон".format(
-                         message.from_user), reply_markup=markup)
+    bot.send_sticker(chat_id, "CAACAgIAAxkBAAIaeWJEeEmCvnsIzz36cM0oHU96QOn7AAJUAANBtVYMarf4xwiNAfojBA")
+    txt_message = f"Привет, {message.from_user.first_name}! Я тестовый бот для курса программирования на языке Python"
+    bot.send_message(chat_id, text=txt_message, reply_markup=Menu.getMenu(chat_id, "Главное меню").markup)
 
 
+# -----------------------------------------------------------------------
 # Получение сообщений от юзера
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     chat_id = message.chat.id
-    # две заготовки кнопок на будущее
-    aback = types.KeyboardButton("К Анкете")
-    back = types.KeyboardButton("Главное меню")
-    # ниже обявляем что будем использвать значения из глобальных переменных, объявленных выше
-    global response_to_input
-    global userAge
-    global userName
     ms_text = message.text
 
-    if ms_text == "Меню" or ms_text == "Главное меню":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(types.KeyboardButton("Развлечения"),
-                   types.KeyboardButton("WEB-камера"),
-                   types.KeyboardButton("Управление"),
-                   types.KeyboardButton("Анкета"),
-                   types.KeyboardButton("Об Авторе"))
-        bot.send_message(chat_id, text="Вы в главном меню", reply_markup=markup)
+    cur_user = menuBot.Users.getUser(chat_id)
+    if cur_user is None:
+        cur_user = menuBot.Users(chat_id, message.json["from"])
 
-    elif ms_text == "Развлечения":  # ..................................................................................
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(types.KeyboardButton("Прислать собаку"),
-                   types.KeyboardButton("Прислать анекдот"),
-                   back)
-        bot.send_message(chat_id, text="Развлечения", reply_markup=markup)
+    db.message_into_db(cur_user, ms_text)
 
-    elif ms_text == "Анкета" or ms_text == "Дз" or ms_text == "ДЗ" or ms_text == "К Анкете":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        # далее у меня добавляются кнопки, в зависимости от введенного имени и/или возраста
-        if not userName == "" and not userAge == -1:
-            bot.send_message(chat_id, text="Твой позывной " + userName + ", тебе " + str(userAge) + " лет")
-            markup.add(types.KeyboardButton("Выведи имя x5"),
-                       types.KeyboardButton("О возрасте"),
-                       types.KeyboardButton("Переверни имя"),
-                       types.KeyboardButton("Длина имени"),
-                       types.KeyboardButton("Имя с большой буквы")
-                       )
-        elif not userName == "":
-            bot.send_message(chat_id, text="Твой позывной " + userName)
-            markup.add(types.KeyboardButton("Выведи имя x5"),
-                       types.KeyboardButton("Переверни имя"),
-                       types.KeyboardButton("Имя с большой буквы"))
-        elif not userAge == -1:
-            bot.send_message(chat_id, text="Твой возраст " + str(userAge))
-            markup.add(types.KeyboardButton("О возрасте"))
-        if not userName == "" or not userAge == -1:
-            markup.add(types.KeyboardButton("Сбросить имя и возраст"))
-        # кнопки ниже есть всегда
-        markup.add(types.KeyboardButton("Ввод имени"),
-                   types.KeyboardButton("Ввод возроста"),
-                   types.KeyboardButton("Задача"),
-                   back)
+    # проверка = мы нажали кнопку подменю, или кнопку действия
+    subMenu = menuBot.goto_menu(bot, chat_id, ms_text)  # попытаемся использовать текст как команду меню, и войти в него
+    if subMenu is not None:
+        # Проверим, нет ли обработчика для самого меню. Если есть - выполним нужные команды
+        if subMenu.name == "Игра в 21":
+            game21 = botGames.newGame(chat_id, botGames.Game21(jokers_enabled=True))  # создаём новый экземпляр игры
+            text_game = game21.get_cards(2)  # просим 2 карты в начале игры
+            bot.send_media_group(chat_id, media=game21.mediaCards)  # получим и отправим изображения карт
+            bot.send_message(chat_id, text=text_game)
 
-        bot.send_message(chat_id, text="Выбери что надо", reply_markup=markup)
+        elif subMenu.name == "Игра КНБ":
+            gameRPS = botGames.newGame(chat_id, botGames.GameRPS())  # создаём новый экземпляр игры и регистрируем его
+            bot.send_photo(chat_id, photo=gameRPS.url_picRules, caption=gameRPS.text_rules, parse_mode='HTML')
 
-    elif ms_text == "Ввод имени" or ms_text == "Ввести имя заново":
-        bot.send_message(chat_id, text="Введи свое имя")
+        return  # мы вошли в подменю, и дальнейшая обработка не требуется
 
-        response_to_input = ms_text + " ответ"  # формирование строки для перехода в elif ниже
-        # response_to_input=Ввод имени ответ, тк ms_text=Ввод имени
+    # проверим, является ли текст текущий команды кнопкой действия
+    cur_menu = Menu.getCurMenu(chat_id)
+    if cur_menu is not None and ms_text in cur_menu.buttons:  # проверим, что команда относится к текущему меню
+        module = cur_menu.module
 
-    # функция проверки правльно введенного имени
-    elif response_to_input == "Ввод имени ответ" or response_to_input == "Ввести имя заново ответ":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        if " " in ms_text:
-            markup.add(types.KeyboardButton("Ввести имя заново"),
-                       aback, back)
-            bot.send_message(chat_id, text="Ошибка в имени", reply_markup=markup)
-        else:
-            # если все хорошо то запоминаем имя
-            userName = ms_text
-            markup.add(aback, back)
-            bot.send_message(chat_id, text="Ваше имя: " + userName, reply_markup=markup)
-        response_to_input = ""
+        if module != "":  # проверим, есть ли обработчик для этого пункта меню в другом модуле, если да - вызовем его (принцип инкапсуляции)
+            exec(module + ".get_text_messages(bot, cur_user, message)")
 
-    elif ms_text == "Ввод возроста" or ms_text == "Ввести возраст заново":
-        bot.send_message(chat_id, text="Введи свой возраст")
-        response_to_input = ms_text + " ответ"
+        if ms_text == "Помощь":
+            send_help(bot, chat_id)
 
-    elif response_to_input == "Ввод возроста ответ" or response_to_input == "Ввести возраст заново ответ":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        try:
-            if int(ms_text) < 0 or int(ms_text) > 150:
-                markup.add(types.KeyboardButton("Ввести возраст заново"),
-                           aback, back)
-                bot.send_message(chat_id, text="Ошибка в возрасте", reply_markup=markup)
-            else:
-                userAge = ms_text
-                markup.add(aback, back)
-                bot.send_message(chat_id, text="Ваш возраст: " + userAge, reply_markup=markup)
-        except:
-            markup.add(types.KeyboardButton("Ввести возраст заново"),
-                       aback, back)
-            bot.send_message(chat_id, text="Ошибка в возрасте", reply_markup=markup)
-        response_to_input = ""
 
-    elif ms_text == "Сбросить имя и возраст":
-        userAge = -1
-        userName = ""
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        bot.send_message(chat_id, text="Параметры сброшены", reply_markup=markup)
 
-    elif ms_text == "Выведи имя x5" and not userName == "":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        bot.send_message(chat_id, text=userName * 5, reply_markup=markup)
-
-    elif ms_text == "О возрасте" and not int(userAge) == -1:
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        if int(userAge) > 20:
-            bot.send_message(chat_id, text="Тебе больше 20", reply_markup=markup)
-        if int(userAge) < 20:
-            bot.send_message(chat_id, text="Тебе меньше 20", reply_markup=markup)
-        if int(userAge) == 20:
-            bot.send_message(chat_id, text="Тебе 20 лет", reply_markup=markup)
-
-    elif ms_text == "Переверни имя" and not userName == "":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        if len(userName) >= 5:
-            bot.send_message(chat_id,
-                             text=userName[::-1] + "\n" + userName[1:-1] + "\n" + userName[-3:] + "\n" + userName[:5],
-                             reply_markup=markup)
-        else:
-            bot.send_message(chat_id, text=userName[::-1] + "\n" + userName[1:-1] + "\n" + userName[-3:],
-                             reply_markup=markup)
-
-    elif ms_text == "Длина имени" and not int(userAge) == -1 and not userName == "":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        bot.send_message(chat_id, text="Длина твоего имени " + str(len(userName)))
-        i = 0
-        summ = 0
-        mult = 1
-        while i < len(userAge):
-            summ = summ + int(userAge[i])
-            mult = mult * int(userAge[i])
-            i += 1
-        bot.send_message(chat_id,
-                         text="Сумма твоего возраста " + str(summ) + "\nПроизведение твоего возраста " + str(mult),
-                         reply_markup=markup)
-
-    elif ms_text == "Имя с большой буквы" and not userName == "":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        bot.send_message(chat_id, text=userName.upper() + " " + userName.lower() + " " + userName[
-                                                                                         ::-1].capitalize() + " " + userName.capitalize(),
-                         reply_markup=markup)
-
-    elif ms_text == "Задача" or ms_text == "Задачу заново":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        bot.send_message(chat_id, "Сколько будет 2+2*2?")
-        response_to_input = ms_text + " ответ"
-
-    elif response_to_input == "Задача ответ" or response_to_input == "Задачу заново ответ":
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(aback, back)
-        if int(ms_text) == 6:
-            bot.send_message(chat_id, text="Правильно", reply_markup=markup)
-        else:
-            markup.add(types.KeyboardButton("Задачу заново"))
-            bot.send_message(chat_id, text="Неправильно", reply_markup=markup)
-        response_to_input = ""
-
-    elif ms_text == "/dog" or ms_text == "Прислать собаку":  # .........................................................
-        bot.send_message(chat_id, text="еще не готово...")
-
-    elif ms_text == "Прислать анекдот":  # .............................................................................
-        bot.send_message(chat_id, text="еще не готово...")
-
-    elif ms_text == "WEB-камера":
-        bot.send_message(chat_id, text="еще не готово...")
-
-    elif ms_text == "Управление":  # ...................................................................................
-        bot.send_message(chat_id, text="еще не готово...")
-
-    elif ms_text == "Помощь" or ms_text == "/help":  # .................................................................
-        bot.send_message(chat_id, "Автор: Андрей Князев")
-        key1 = types.InlineKeyboardMarkup()
-        btn1 = types.InlineKeyboardButton(text="Напишите автору", url="https://vk.com/akoffikal")
-        key1.add(btn1)
-        img = open('resources/ak.jpg', "r+b")
-        bot.send_photo(message.chat.id, img, reply_markup=key1)
-
-    else:  # ...........................................................................................................
-        bot.send_message(chat_id, text="Я тебя слышу!!! Ваше сообщение: " + ms_text)
+    else:  # ======================================= случайный текст
+        bot.send_message(chat_id, text="Мне жаль, я не понимаю вашу команду: " + ms_text)
+        menuBot.goto_menu(bot, chat_id, "Главное меню")
 
 
 # -----------------------------------------------------------------------
-bot.polling(none_stop=True, interval=0)  # Запускаем бота
+@bot.callback_query_handler(func=lambda call: True)
+def callback_worker(call):
+    # если требуется передать один или несколько параметров в обработчик кнопки,
+    # используйте методы Menu.getExtPar() и Menu.setExtPar()
+    # call.data это callback_data, которую мы указали при объявлении InLine-кнопки
+    # После обработки каждого запроса вызовете метод answer_callback_query(), чтобы Telegram понял, что запрос обработан
+    chat_id = call.message.chat.id
+    message_id = call.message.id
+    cur_user = menuBot.Users.getUser(chat_id)
+    if cur_user is None:
+        cur_user = menuBot.Users(chat_id, call.message.json["from"])
 
-print()
+    tmp = call.data.split("|")
+    menu = tmp[0] if len(tmp) > 0 else ""
+    cmd = tmp[1] if len(tmp) > 1 else ""
+    par = tmp[2] if len(tmp) > 2 else ""
+
+    if menu == "GameRPSm":
+        botGames.callback_worker(bot, cur_user, cmd, par, call)  # обработчик кнопок игры находится в модули игры
+
+
+# -----------------------------------------------------------------------
+def send_help(bot, chat_id):
+    bot.send_message(chat_id, "Автор: Андрей Князев")
+    markup = types.InlineKeyboardMarkup()
+    btn1 = types.InlineKeyboardButton(text="Напишите автору", url="https://vk.com/akoffikal")
+    markup.add(btn1)
+    img = open('resources/ak.jpg', "r+b")
+    bot.send_photo(chat_id, img, reply_markup=markup)
+
+    bot.send_message(chat_id, "Активные пользователи чат-бота:")
+    for el in menuBot.Users.activeUsers:
+        bot.send_message(chat_id, menuBot.Users.activeUsers[el].getUserHTML(), parse_mode='HTML')
+
+# ---------------------------------------------------------------------
+
+
+bot.polling(none_stop=True, interval=0)  # Запускаем бота
