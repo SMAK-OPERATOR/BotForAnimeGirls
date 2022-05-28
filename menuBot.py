@@ -111,12 +111,13 @@ def goto_menu(bot, chat_id, name_menu):
 
 
 # -----------------------------------------------------------------------
-m_main = Menu("Главное меню", buttons=["Развлечения", "Игры", "Анкета", "Помощь"])
+m_main = Menu("Главное меню", buttons=["Развлечения", "Игры", "Анкета", "База данных", "Помощь"])
 m_games = Menu("Игры", buttons=["Игра КНБ", "Игра КНБ-MP", "Игра в 21", "Выход"], module="botGames", parent=m_main)
 m_game_21 = Menu("Игра в 21", buttons=["Карту!", "Стоп!", "Выход"], parent=m_games, module="botGames")
 m_game_rsp = Menu("Игра КНБ", buttons=["Камень", "Ножницы", "Бумага", "Выход"], parent=m_games, module="botGames")
 m_DZ = Menu("Анкета", buttons=["Ввод имени", "Ввод возраста", "Задача", "Выход"], parent=m_main, module="DZ")
 m_fun = Menu("Развлечения", buttons=["Прислать анекдот", "Курс экза",  "Выход"], parent=m_main, module="fun")
+m_bd = Menu("База данных", buttons=["Пользователи","Сообщения", "Выход"],parent=m_main,module="db")
 # m_fun = Menu("Развлечения", buttons=[["Прислать собаку", "Прислать лису"], ["Прислать анекдот", "Прислать фильм"], ["Выход"]], parent=m_main)
 
 Menu.loadCurMenu()

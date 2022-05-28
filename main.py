@@ -12,10 +12,15 @@ import db
 bot = telebot.TeleBot('5133509301:AAE_Ylud9e71UevXlb7xu3B6FJKJ6qC7Oas')  # Создаем экземпляр бота
 
 
+@bot.callback_query_handler(func=lambda call: True)
+def callback_db(call):
+    bot.send_message(call.message.chat.id, db.get_user_messages(str(call.data)))
+
 # -----------------------------------------------------------------------
 # Функция, обрабатывающая команды
 @bot.message_handler(commands="start")
 def command(message):
+
     chat_id = message.chat.id
     bot.send_sticker(chat_id, "CAACAgIAAxkBAAIaeWJEeEmCvnsIzz36cM0oHU96QOn7AAJUAANBtVYMarf4xwiNAfojBA")
     txt_message = f"Привет, {message.from_user.first_name}! Я тестовый бот для курса программирования на языке Python"

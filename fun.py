@@ -5,7 +5,7 @@ import requests
 
 def exaltExchangeRate():
     import json
-    req = requests.get('https://poe.ninja/api/data/currencyoverview?league=Archnemesis&type=Currency')
+    req = requests.get('https://poe.ninja/api/data/currencyoverview?league=Sentinel&type=Currency')
     Exchange_json = req.json()
     ExaltExchangeInt = None
     for i in Exchange_json["lines"]:
