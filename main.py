@@ -9,7 +9,7 @@ import DZ  # домашнее задание от первого урока
 import fun  # развлечения
 import db
 
-bot = telebot.TeleBot('5133509301:AAE_Ylud9e71UevXlb7xu3B6FJKJ6qC7Oas')  # Создаем экземпляр бота
+bot = telebot.TeleBot('')  # Создаем экземпляр бота
 
 
 @bot.callback_query_handler(func=lambda call: True)
